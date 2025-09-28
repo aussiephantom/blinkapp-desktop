@@ -1,0 +1,138 @@
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { FileProcessor } from './components/FileProcessor';
+import { ProcessingQueue } from './components/ProcessingQueue';
+import { Preferences } from './components/Preferences';
+import { OneDriveAccountSelector } from './components/OneDriveAccountSelector';
+
+interface UserPreferences {
+  apiBaseUrl: string;
+  dropFolderPath: string;
+  oneDriveRootFolder: string;
+  autoProcess: boolean;
+  autoProcessFiles?: boolean;
+  notificationEnabled?: boolean;
+}
+
+const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'file-processor' | 'processing-queue' | 'settings'>('file-processor');
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    apiBaseUrl: 'https://blinkapp-backend.vercel.app',
+    dropFolderPath: '',
+    oneDriveRootFolder: '/',
+    autoProcess: true
+  });
+  const [showOneDriveSelector, setShowOneDriveSelector] = useState(false);
+  const [isFirstRun, setIsFirstRun] = useState(false);
+
+  const initializeApp = async () => {
+    try {
+      console.log('[APP:INIT] Initializing BlinkApp Desktop...');
+      
+      // Load saved preferences
+      const savedPrefs = await window.electronAPI.getPreferences();
+      if (savedPrefs) {
+        console.log('[APP:INIT] Loaded saved preferences:', savedPrefs);
+        setPreferences(savedPrefs);
+        
+        // Check if OneDrive root folder is set
+        if (!savedPrefs.oneDriveRootFolder || savedPrefs.oneDriveRootFolder === '/') {
+          console.log('[APP:INIT] OneDrive root folder not set, showing selector');
+          setIsFirstRun(true);
+          setShowOneDriveSelector(true);
+        }
+      } else {
+        console.log('[APP:INIT] No saved preferences found, using defaults');
+        setIsFirstRun(true);
+        setShowOneDriveSelector(true);
+      }
+
+      // Restart file watcher if drop folder path changed
+      if (savedPrefs?.dropFolderPath) {
+        console.log('[APP:INIT] Restarting file watcher for path:', savedPrefs.dropFolderPath);
+        await window.electronAPI.restartFileWatcher();
+      }
+
+      console.log('[APP:INIT] App initialization complete');
+    } catch (error) {
+      console.error('[APP:INIT] Error initializing app:', error);
+    }
+  };
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const handlePreferencesChange = async (newPreferences: UserPreferences) => {
+    try {
+      console.log('[APP:PREFS] Saving preferences:', newPreferences);
+      await window.electronAPI.savePreferences(newPreferences);
+      setPreferences(newPreferences);
+
+      // Restart file watcher if drop folder path changed
+      if (newPreferences.dropFolderPath !== preferences.dropFolderPath) {
+        console.log('[APP:PREFS] Drop folder path changed, restarting file watcher');
+        await window.electronAPI.restartFileWatcher();
+      }
+    } catch (error) {
+      console.error('[APP:PREFS] Error saving preferences:', error);
+    }
+  };
+
+  const handleOneDriveAccountSelected = async (account: any) => {
+    try {
+      console.log('[APP:ONEDRIVE] Selected OneDrive account:', account);
+      const updatedPrefs = { ...preferences, oneDriveRootFolder: account.path || account };
+      await handlePreferencesChange(updatedPrefs);
+      setShowOneDriveSelector(false);
+      setIsFirstRun(false);
+    } catch (error) {
+      console.error('[APP:ONEDRIVE] Error saving OneDrive account:', error);
+    }
+  };
+
+  const handleSkipOneDriveSelection = () => {
+    console.log('[APP:ONEDRIVE] Skipping OneDrive account selection');
+    setShowOneDriveSelector(false);
+    setIsFirstRun(false);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'file-processor':
+        return <FileProcessor preferences={preferences} />;
+      case 'processing-queue':
+        return <ProcessingQueue />;
+      case 'settings':
+        return (
+          <Preferences
+            preferences={preferences}
+            onPreferencesChange={handlePreferencesChange}
+          />
+        );
+      default:
+        return <FileProcessor preferences={preferences} />;
+    }
+  };
+
+  if (showOneDriveSelector) {
+    return (
+      <OneDriveAccountSelector
+        onAccountSelected={handleOneDriveAccountSelected}
+        onSkip={handleSkipOneDriveSelection}
+        isFirstRun={isFirstRun}
+      />
+    );
+  }
+
+  return (
+    <div className="app">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="main-content">
+        {renderContent()}
+      </div>
+    </div>
+  );
+};
+
+export default App;

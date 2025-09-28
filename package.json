@@ -1,0 +1,115 @@
+{
+  "name": "blinkapp-desktop",
+  "version": "1.0.0",
+  "description": "BrokerNet Desktop Application",
+  "author": "Glenn Bowles",
+  "main": "dist/main.js",
+  "homepage": "https://github.com/aussiephantom/blinkapp-desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aussiephantom/blinkapp-desktop.git"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.main.config.js && webpack --config webpack.renderer.config.js",
+    "build:main": "webpack --config webpack.main.config.js",
+    "build:renderer": "webpack --config webpack.renderer.config.js",
+    "dev": "concurrently \"npm run build:main -- --watch\" \"npm run build:renderer -- --watch\"",
+    "start": "electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:win-installer": "npm run build && electron-builder --win --x64 --ia32",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "publish": "npm run build && electron-builder --publish=always",
+    "env:local": "node scripts/switch-env.js local",
+    "env:production": "node scripts/switch-env.js production",
+    "env:status": "node scripts/switch-env.js status",
+    "dev:local": "npm run env:local && npm run dev",
+    "dev:production": "npm run env:production && npm run dev"
+  },
+  "keywords": [
+    "electron",
+    "desktop",
+    "file-tagging",
+    "onedrive",
+    "blinkapp"
+  ],
+  "author": "BrokerNet Desktop",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/msal-browser": "^4.24.0",
+    "@azure/msal-node": "^3.8.0",
+    "axios": "^1.6.0",
+    "better-sqlite3": "^9.2.2",
+    "chokidar": "^3.5.3",
+    "electron-store": "^11.0.0",
+    "form-data": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.8.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "concurrently": "^8.2.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.8.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.0",
+    "electron-updater": "^6.6.2",
+    "html-webpack-plugin": "^5.5.0",
+    "style-loader": "^3.3.0",
+    "ts-loader": "^9.4.0",
+    "typescript": "^5.2.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "build": {
+    "appId": "com.blinkapp.desktop",
+    "productName": "BrokerNet Desktop",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "forceCodeSigning": false,
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "publisherName": "BrokerNet Desktop",
+      "requestedExecutionLevel": "asInvoker",
+      "sign": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BrokerNet Desktop",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": "BrokerNet Desktop",
+      "artifactName": "BrokerNet Desktop Setup ${version}.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    },
+    "portable": {
+      "artifactName": "BrokerNet Desktop ${version}.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "aussiephantom",
+      "repo": "blinkapp-desktop",
+      "private": false
+    }
+  }
+}
