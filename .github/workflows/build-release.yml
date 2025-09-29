@@ -32,11 +32,31 @@ jobs:
     - name: Build desktop app
       run: npm run build
       
-    - name: Build portable app (no code signing required)
+    - name: Modify package.json to disable code signing completely
       run: |
-        npx electron-builder --win --x64 --ia32 --config.win.target=portable
+        # Create a backup
+        cp package.json package.json.backup
+        
+        # Use PowerShell to modify the JSON
+        powershell -Command "
+        $json = Get-Content 'package.json' | ConvertFrom-Json
+        $json.build.forceCodeSigning = $false
+        $json.build.win.sign = $false
+        $json.build.win.verifyUpdateCodeSignature = $false
+        $json.build.win.target = 'portable'
+        $json.build.win.requestedExecutionLevel = 'asInvoker'
+        $json | ConvertTo-Json -Depth 10 | Set-Content 'package.json'
+        "
+        
+    - name: Build portable app (no code signing)
+      run: |
+        npx electron-builder --win --x64 --ia32
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
+        
+    - name: Restore package.json
+      run: |
+        cp package.json.backup package.json
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
