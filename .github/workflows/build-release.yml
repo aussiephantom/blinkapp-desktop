@@ -38,15 +38,7 @@ jobs:
         cp package.json package.json.backup
         
         # Use PowerShell to modify the JSON
-        powershell -Command "
-        $json = Get-Content 'package.json' | ConvertFrom-Json
-        $json.build.forceCodeSigning = $false
-        $json.build.win.sign = $false
-        $json.build.win.verifyUpdateCodeSignature = $false
-        $json.build.win.target = 'portable'
-        $json.build.win.requestedExecutionLevel = 'asInvoker'
-        $json | ConvertTo-Json -Depth 10 | Set-Content 'package.json'
-        "
+        powershell -Command "$json = Get-Content 'package.json' | ConvertFrom-Json; $json.build.forceCodeSigning = `$false; $json.build.win.sign = `$false; $json.build.win.verifyUpdateCodeSignature = `$false; $json.build.win.target = 'portable'; $json.build.win.requestedExecutionLevel = 'asInvoker'; $json | ConvertTo-Json -Depth 10 | Set-Content 'package.json'"
         
     - name: Build portable app (no code signing)
       run: |
