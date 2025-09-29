@@ -33,11 +33,9 @@ jobs:
       run: npm run build
       
     - name: Build Windows executable (unpacked)
-      run: npx electron-builder --win --x64 --ia32 --dir --config.win.sign=false --config.forceCodeSigning=false
+      run: npx electron-builder --win --x64 --ia32 --dir --config.win.sign=false --config.forceCodeSigning=false --config.win.verifyUpdateCodeSignature=false
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false # Disable code signing for GitHub Actions builds
-        WIN_CSC_LINK: ""
-        WIN_CSC_KEY_PASSWORD: ""
         
     - name: Create installer directory structure
       run: |
