@@ -27,27 +27,22 @@ jobs:
         node-version: '20'
         
     - name: Install dependencies
-      working-directory: ./desktop-app
       run: npm ci
       
     - name: Build desktop app
-      working-directory: ./desktop-app
       run: npm run build
       
     - name: Build Windows executable (unpacked)
-      working-directory: ./desktop-app
       run: npx electron-builder --win --x64 --ia32 --dir
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false # Disable code signing for GitHub Actions builds
         
     - name: Create installer directory structure
-      working-directory: ./desktop-app
       run: |
         mkdir -p dist-electron/installer/BrokerNet Desktop
         cp -r dist-electron/win-unpacked/* dist-electron/installer/BrokerNet Desktop/
         
     - name: Create install.bat
-      working-directory: ./desktop-app
       run: |
         echo '@echo off' > dist-electron/installer/install.bat
         echo 'echo Installing BrokerNet Desktop...' >> dist-electron/installer/install.bat
@@ -70,14 +65,12 @@ jobs:
         echo 'pause' >> dist-electron/installer/install.bat
         
     - name: Create run.bat
-      working-directory: ./desktop-app
       run: |
         echo '@echo off' > dist-electron/installer/BrokerNet Desktop/run.bat
         echo 'cd /d "%~dp0"' >> dist-electron/installer/BrokerNet Desktop/run.bat
         echo '"BrokerNet Desktop.exe" .' >> dist-electron/installer/BrokerNet Desktop/run.bat
         
     - name: Create README.txt
-      working-directory: ./desktop-app
       run: |
         echo 'BrokerNet Desktop Installation Instructions' > dist-electron/installer/README.txt
         echo '' >> dist-electron/installer/README.txt
@@ -89,7 +82,6 @@ jobs:
         echo 'For support, contact your system administrator.' >> dist-electron/installer/README.txt
         
     - name: Create ZIP package
-      working-directory: ./desktop-app
       run: |
         cd dist-electron/installer
         powershell -Command "Compress-Archive -Path * -DestinationPath '../BrokerNet Desktop Installer v${{ inputs.version }}.zip' -Force"
@@ -98,7 +90,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: desktop-app-build
-        path: desktop-app/dist-electron/
+        path: dist-electron/
         retention-days: 30
         
     - name: Create Release
@@ -119,7 +111,7 @@ jobs:
           ## Auto-Update
           The app will automatically check for updates when launched.
         files: |
-          desktop-app/dist-electron/BrokerNet Desktop Installer v${{ inputs.version }}.zip
+          dist-electron/BrokerNet Desktop Installer v${{ inputs.version }}.zip
         draft: false
         prerelease: false
       env:
