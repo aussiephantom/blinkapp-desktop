@@ -32,13 +32,22 @@ jobs:
     - name: Build desktop app
       run: npm run build
       
-    - name: Modify package.json to disable code signing completely
+    - name: Create PowerShell script to modify package.json
       run: |
-        # Create a backup
-        cp package.json package.json.backup
+        echo '$json = Get-Content "package.json" | ConvertFrom-Json' > modify-package.ps1
+        echo '$json.build.forceCodeSigning = $false' >> modify-package.ps1
+        echo '$json.build.win.sign = $false' >> modify-package.ps1
+        echo '$json.build.win.verifyUpdateCodeSignature = $false' >> modify-package.ps1
+        echo '$json.build.win.target = "portable"' >> modify-package.ps1
+        echo '$json.build.win.requestedExecutionLevel = "asInvoker"' >> modify-package.ps1
+        echo '$json | ConvertTo-Json -Depth 10 | Set-Content "package.json"' >> modify-package.ps1
         
-        # Use PowerShell to modify the JSON
-        powershell -Command "$json = Get-Content 'package.json' | ConvertFrom-Json; $json.build.forceCodeSigning = `$false; $json.build.win.sign = `$false; $json.build.win.verifyUpdateCodeSignature = `$false; $json.build.win.target = 'portable'; $json.build.win.requestedExecutionLevel = 'asInvoker'; $json | ConvertTo-Json -Depth 10 | Set-Content 'package.json'"
+    - name: Modify package.json to disable code signing
+      run: |
+        # Create backup
+        cp package.json package.json.backup
+        # Run PowerShell script
+        powershell -ExecutionPolicy Bypass -File modify-package.ps1
         
     - name: Build portable app (no code signing)
       run: |
