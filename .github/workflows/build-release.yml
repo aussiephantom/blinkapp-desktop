@@ -1,0 +1,69 @@
+name: Build and Release Desktop App
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      release_notes:
+        description: 'Release notes'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build desktop app
+      run: npm run build
+      
+    - name: Build installer with Electron Builder
+      run: |
+        npm run dist:win-installer
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: desktop-app-build
+        path: dist-electron/
+        retention-days: 30
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ inputs.version }}
+        name: BrokerNet Desktop v${{ inputs.version }}
+        body: |
+          ## What's New
+          ${{ inputs.release_notes || 'Bug fixes and improvements' }}
+          
+          ## Installation
+          1. Download the installer below
+          2. Run as administrator
+          3. Follow the installation wizard
+          4. Launch from desktop shortcut
+          
+          ## Auto-Update
+          The app will automatically check for updates when launched.
+        files: |
+          dist-electron/BrokerNet Desktop Setup *.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
