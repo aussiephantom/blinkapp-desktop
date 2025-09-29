@@ -32,32 +32,30 @@ jobs:
     - name: Build desktop app
       run: npm run build
       
-    - name: Create PowerShell script to modify package.json
+    - name: Create portable executable without code signing
       run: |
-        echo '$json = Get-Content "package.json" | ConvertFrom-Json' > modify-package.ps1
-        echo '$json.build.forceCodeSigning = $false' >> modify-package.ps1
-        echo '$json.build.win.sign = $false' >> modify-package.ps1
-        echo '$json.build.win.verifyUpdateCodeSignature = $false' >> modify-package.ps1
-        echo '$json.build.win.target = "portable"' >> modify-package.ps1
-        echo '$json.build.win.requestedExecutionLevel = "asInvoker"' >> modify-package.ps1
-        echo '$json | ConvertTo-Json -Depth 10 | Set-Content "package.json"' >> modify-package.ps1
+        # Create a simple portable build without electron-builder
+        mkdir -p dist-electron/portable
+        cp -r dist/* dist-electron/portable/
+        cp package.json dist-electron/portable/
+        cp -r node_modules dist-electron/portable/
         
-    - name: Modify package.json to disable code signing
-      run: |
-        # Create backup
-        cp package.json package.json.backup
-        # Run PowerShell script
-        powershell -ExecutionPolicy Bypass -File modify-package.ps1
+        # Download Electron binaries directly
+        curl -L -o electron.zip "https://github.com/electron/electron/releases/download/v27.3.11/electron-v27.3.11-win32-x64.zip"
+        unzip electron.zip -d dist-electron/portable/
         
-    - name: Build portable app (no code signing)
-      run: |
-        npx electron-builder --win --x64 --ia32
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
+        # Rename electron.exe to our app name
+        mv dist-electron/portable/electron.exe "dist-electron/portable/BrokerNet Desktop.exe"
         
-    - name: Restore package.json
+        # Create a simple launcher script
+        echo '@echo off' > "dist-electron/portable/run.bat"
+        echo 'cd /d "%~dp0"' >> "dist-electron/portable/run.bat"
+        echo '"BrokerNet Desktop.exe" .' >> "dist-electron/portable/run.bat"
+        
+    - name: Create ZIP package
       run: |
-        cp package.json.backup package.json
+        cd dist-electron/portable
+        powershell -Command "Compress-Archive -Path * -DestinationPath '../BrokerNet Desktop v${{ inputs.version }}.zip' -Force"
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -76,14 +74,15 @@ jobs:
           ${{ inputs.release_notes || 'Bug fixes and improvements' }}
           
           ## Installation
-          1. Download the portable executable below
-          2. Run the .exe file directly (no installation required)
-          3. The app will automatically check for updates when launched
+          1. Download the ZIP file below
+          2. Extract to a folder of your choice
+          3. Run "BrokerNet Desktop.exe" or "run.bat"
+          4. No installation required - completely portable
           
           ## Auto-Update
           The app will automatically check for updates when launched.
         files: |
-          dist-electron/BrokerNet Desktop *.exe
+          dist-electron/BrokerNet Desktop v${{ inputs.version }}.zip
         draft: false
         prerelease: false
       env:
