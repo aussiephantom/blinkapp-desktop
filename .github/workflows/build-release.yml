@@ -32,30 +32,58 @@ jobs:
     - name: Build desktop app
       run: npm run build
       
-    - name: Create portable executable without code signing
+    - name: Create Windows installer package
       run: |
-        # Create a simple portable build without electron-builder
-        mkdir -p dist-electron/portable
-        cp -r dist/* dist-electron/portable/
-        cp package.json dist-electron/portable/
-        cp -r node_modules dist-electron/portable/
+        # Create installer directory structure
+        mkdir -p dist-electron/installer
         
-        # Download Electron binaries directly
+        # Copy built app files
+        cp -r dist/* dist-electron/installer/
+        cp package.json dist-electron/installer/
+        cp -r node_modules dist-electron/installer/
+        
+        # Download Electron binaries
         curl -L -o electron.zip "https://github.com/electron/electron/releases/download/v27.3.11/electron-v27.3.11-win32-x64.zip"
-        unzip electron.zip -d dist-electron/portable/
+        unzip electron.zip -d dist-electron/installer/
         
         # Rename electron.exe to our app name
-        mv dist-electron/portable/electron.exe "dist-electron/portable/BrokerNet Desktop.exe"
+        mv dist-electron/installer/electron.exe "dist-electron/installer/BrokerNet Desktop.exe"
         
-        # Create a simple launcher script
-        echo '@echo off' > "dist-electron/portable/run.bat"
-        echo 'cd /d "%~dp0"' >> "dist-electron/portable/run.bat"
-        echo '"BrokerNet Desktop.exe" .' >> "dist-electron/portable/run.bat"
+        # Create installer script
+        echo '@echo off' > "dist-electron/installer/install.bat"
+        echo 'echo Installing BrokerNet Desktop...' >> "dist-electron/installer/install.bat"
+        echo 'set "INSTALL_DIR=%USERPROFILE%\BrokerNet Desktop"' >> "dist-electron/installer/install.bat"
+        echo '' >> "dist-electron/installer/install.bat"
+        echo 'echo Creating installation directory: %INSTALL_DIR%' >> "dist-electron/installer/install.bat"
+        echo 'mkdir "%INSTALL_DIR%" > nul 2>&1' >> "dist-electron/installer/install.bat"
+        echo '' >> "dist-electron/installer/install.bat"
+        echo 'echo Copying application files...' >> "dist-electron/installer/install.bat"
+        echo 'xcopy /E /I /Y "%~dp0*" "%INSTALL_DIR%\"' >> "dist-electron/installer/install.bat"
+        echo '' >> "dist-electron/installer/install.bat"
+        echo 'echo Creating desktop shortcut...' >> "dist-electron/installer/install.bat"
+        echo 'powershell -Command "$ws = New-Object -ComObject WScript.Shell; $shortcut = $ws.CreateShortcut(\"%USERPROFILE%\Desktop\BrokerNet Desktop.lnk\"); $shortcut.TargetPath = \"\"\"%INSTALL_DIR%\BrokerNet Desktop.exe\"\"\"; $shortcut.Save()"' >> "dist-electron/installer/install.bat"
+        echo '' >> "dist-electron/installer/install.bat"
+        echo 'echo Creating Start Menu shortcut...' >> "dist-electron/installer/install.bat"
+        echo 'powershell -Command "$ws = New-Object -ComObject WScript.Shell; $shortcut = $ws.CreateShortcut(\"%APPDATA%\Microsoft\Windows\Start Menu\Programs\BrokerNet Desktop.lnk\"); $shortcut.TargetPath = \"\"\"%INSTALL_DIR%\BrokerNet Desktop.exe\"\"\"; $shortcut.Save()"' >> "dist-electron/installer/install.bat"
+        echo '' >> "dist-electron/installer/install.bat"
+        echo 'echo Installation complete!' >> "dist-electron/installer/install.bat"
+        echo 'echo You can now find BrokerNet Desktop in your Start Menu and Desktop.' >> "dist-electron/installer/install.bat"
+        echo 'pause' >> "dist-electron/installer/install.bat"
         
-    - name: Create ZIP package
+        # Create README
+        echo 'BrokerNet Desktop Installation Instructions' > "dist-electron/installer/README.txt"
+        echo '' >> "dist-electron/installer/README.txt"
+        echo '1. Run install.bat as administrator' >> "dist-electron/installer/README.txt"
+        echo '2. The app will be installed to your user folder' >> "dist-electron/installer/README.txt"
+        echo '3. Desktop and Start Menu shortcuts will be created' >> "dist-electron/installer/README.txt"
+        echo '4. Launch BrokerNet Desktop from the shortcut' >> "dist-electron/installer/README.txt"
+        echo '' >> "dist-electron/installer/README.txt"
+        echo 'For support, contact your system administrator.' >> "dist-electron/installer/README.txt"
+        
+    - name: Create installer ZIP
       run: |
-        cd dist-electron/portable
-        powershell -Command "Compress-Archive -Path * -DestinationPath '../BrokerNet Desktop v${{ inputs.version }}.zip' -Force"
+        cd dist-electron/installer
+        powershell -Command "Compress-Archive -Path * -DestinationPath '../BrokerNet Desktop Installer v${{ inputs.version }}.zip' -Force"
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -74,15 +102,16 @@ jobs:
           ${{ inputs.release_notes || 'Bug fixes and improvements' }}
           
           ## Installation
-          1. Download the ZIP file below
-          2. Extract to a folder of your choice
-          3. Run "BrokerNet Desktop.exe" or "run.bat"
-          4. No installation required - completely portable
+          1. Download the installer ZIP file below
+          2. Extract the ZIP file
+          3. Run `install.bat` as administrator
+          4. Desktop and Start Menu shortcuts will be created
+          5. Launch BrokerNet Desktop from the shortcut
           
           ## Auto-Update
           The app will automatically check for updates when launched.
         files: |
-          dist-electron/BrokerNet Desktop v${{ inputs.version }}.zip
+          dist-electron/BrokerNet Desktop Installer v${{ inputs.version }}.zip
         draft: false
         prerelease: false
       env:
