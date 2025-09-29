@@ -32,9 +32,9 @@ jobs:
     - name: Build desktop app
       run: npm run build
       
-    - name: Build installer with Electron Builder (no code signing)
+    - name: Build portable app (no code signing required)
       run: |
-        npx electron-builder --win --x64 --ia32 --config.win.sign=false --config.win.verifyUpdateCodeSignature=false --config.forceCodeSigning=false
+        npx electron-builder --win --x64 --ia32 --config.win.target=portable
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
         
@@ -55,15 +55,14 @@ jobs:
           ${{ inputs.release_notes || 'Bug fixes and improvements' }}
           
           ## Installation
-          1. Download the installer below
-          2. Run as administrator
-          3. Follow the installation wizard
-          4. Launch from desktop shortcut
+          1. Download the portable executable below
+          2. Run the .exe file directly (no installation required)
+          3. The app will automatically check for updates when launched
           
           ## Auto-Update
           The app will automatically check for updates when launched.
         files: |
-          dist-electron/BrokerNet Desktop Setup *.exe
+          dist-electron/BrokerNet Desktop *.exe
         draft: false
         prerelease: false
       env:
