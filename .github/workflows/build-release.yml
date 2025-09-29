@@ -49,55 +49,43 @@ jobs:
         # Rename electron.exe to our app name
         mv dist-electron/installer/electron.exe "dist-electron/installer/BrokerNet Desktop.exe"
         
-    - name: Create batch files using PowerShell
+    - name: Create batch files using simple PowerShell commands
       run: |
-        # Create install.bat using PowerShell
-        powershell -Command "
-        @'
-        @echo off
-        echo Installing BrokerNet Desktop...
-        set \"INSTALL_DIR=%USERPROFILE%\BrokerNet Desktop\"
+        # Create install.bat line by line
+        echo '@echo off' > dist-electron/installer/install.bat
+        echo 'echo Installing BrokerNet Desktop...' >> dist-electron/installer/install.bat
+        echo 'set "INSTALL_DIR=%USERPROFILE%\BrokerNet Desktop"' >> dist-electron/installer/install.bat
+        echo '' >> dist-electron/installer/install.bat
+        echo 'echo Creating installation directory: %INSTALL_DIR%' >> dist-electron/installer/install.bat
+        echo 'mkdir "%INSTALL_DIR%" > nul 2>&1' >> dist-electron/installer/install.bat
+        echo '' >> dist-electron/installer/install.bat
+        echo 'echo Copying application files...' >> dist-electron/installer/install.bat
+        echo 'xcopy /E /I /Y "%~dp0*" "%INSTALL_DIR%\"' >> dist-electron/installer/install.bat
+        echo '' >> dist-electron/installer/install.bat
+        echo 'echo Creating desktop shortcut...' >> dist-electron/installer/install.bat
+        echo 'powershell -Command "$ws = New-Object -ComObject WScript.Shell; $shortcut = $ws.CreateShortcut(\"%USERPROFILE%\Desktop\BrokerNet Desktop.lnk\"); $shortcut.TargetPath = \"%INSTALL_DIR%\BrokerNet Desktop.exe\"; $shortcut.Save()"' >> dist-electron/installer/install.bat
+        echo '' >> dist-electron/installer/install.bat
+        echo 'echo Creating Start Menu shortcut...' >> dist-electron/installer/install.bat
+        echo 'powershell -Command "$ws = New-Object -ComObject WScript.Shell; $shortcut = $ws.CreateShortcut(\"%APPDATA%\Microsoft\Windows\Start Menu\Programs\BrokerNet Desktop.lnk\"); $shortcut.TargetPath = \"%INSTALL_DIR%\BrokerNet Desktop.exe\"; $shortcut.Save()"' >> dist-electron/installer/install.bat
+        echo '' >> dist-electron/installer/install.bat
+        echo 'echo Installation complete!' >> dist-electron/installer/install.bat
+        echo 'echo You can now find BrokerNet Desktop in your Start Menu and Desktop.' >> dist-electron/installer/install.bat
+        echo 'pause' >> dist-electron/installer/install.bat
         
-        echo Creating installation directory: %INSTALL_DIR%
-        mkdir \"%INSTALL_DIR%\" > nul 2>&1
+        # Create run.bat
+        echo '@echo off' > dist-electron/installer/run.bat
+        echo 'cd /d "%~dp0"' >> dist-electron/installer/run.bat
+        echo '"BrokerNet Desktop.exe" .' >> dist-electron/installer/run.bat
         
-        echo Copying application files...
-        xcopy /E /I /Y \"%~dp0*\" \"%INSTALL_DIR%\"
-        
-        echo Creating desktop shortcut...
-        powershell -Command \"`$ws = New-Object -ComObject WScript.Shell; `$shortcut = `$ws.CreateShortcut(\\\"%USERPROFILE%\Desktop\BrokerNet Desktop.lnk\\\"); `$shortcut.TargetPath = \\\"\\\"\\\"%INSTALL_DIR%\BrokerNet Desktop.exe\\\"\\\"\\\"; `$shortcut.Save()\"
-        
-        echo Creating Start Menu shortcut...
-        powershell -Command \"`$ws = New-Object -ComObject WScript.Shell; `$shortcut = `$ws.CreateShortcut(\\\"%APPDATA%\Microsoft\Windows\Start Menu\Programs\BrokerNet Desktop.lnk\\\"); `$shortcut.TargetPath = \\\"\\\"\\\"%INSTALL_DIR%\BrokerNet Desktop.exe\\\"\\\"\\\"; `$shortcut.Save()\"
-        
-        echo Installation complete!
-        echo You can now find BrokerNet Desktop in your Start Menu and Desktop.
-        pause
-        '@ | Out-File -FilePath 'dist-electron/installer/install.bat' -Encoding ASCII
-        "
-        
-        # Create run.bat using PowerShell
-        powershell -Command "
-        @'
-        @echo off
-        cd /d \"%~dp0\"
-        \"BrokerNet Desktop.exe\" .
-        '@ | Out-File -FilePath 'dist-electron/installer/run.bat' -Encoding ASCII
-        "
-        
-        # Create README.txt using PowerShell
-        powershell -Command "
-        @'
-        BrokerNet Desktop Installation Instructions
-        
-        1. Run install.bat as administrator
-        2. The app will be installed to your user folder
-        3. Desktop and Start Menu shortcuts will be created
-        4. Launch BrokerNet Desktop from the shortcut
-        
-        For support, contact your system administrator.
-        '@ | Out-File -FilePath 'dist-electron/installer/README.txt' -Encoding ASCII
-        "
+        # Create README.txt
+        echo 'BrokerNet Desktop Installation Instructions' > dist-electron/installer/README.txt
+        echo '' >> dist-electron/installer/README.txt
+        echo '1. Run install.bat as administrator' >> dist-electron/installer/README.txt
+        echo '2. The app will be installed to your user folder' >> dist-electron/installer/README.txt
+        echo '3. Desktop and Start Menu shortcuts will be created' >> dist-electron/installer/README.txt
+        echo '4. Launch BrokerNet Desktop from the shortcut' >> dist-electron/installer/README.txt
+        echo '' >> dist-electron/installer/README.txt
+        echo 'For support, contact your system administrator.' >> dist-electron/installer/README.txt
         
     - name: Create installer ZIP
       run: |
